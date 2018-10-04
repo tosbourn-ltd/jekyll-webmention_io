@@ -14,13 +14,17 @@ module Jekyll
         end
       end
 
-      def self.process(_args = [], _options = {})
-        if File.exist? WebmentionIO.cache_file("sent.yml")
+      def self.process(_args = [], options = {})
+        config = configuration_from_options(options)
+        Jekyll::WebmentionIO.setup_caches(config)
+        sent_file = Jekyll::WebmentionIO.get_cache_file_path "sent"
+        if sent_file && File.exist?( sent_file )
           WebmentionIO.log "error", "Your outgoing webmentions queue needs to be upgraded. Please re-build your project."
         end
         count = 0
-        cached_outgoing = WebmentionIO.get_cache_file_path "outgoing"
-        if File.exist?(cached_outgoing)
+        cached_outgoing = Jekyll::WebmentionIO.get_cache_file_path "outgoing"
+        puts cached_outgoing
+        if cached_outgoing && File.exist?(cached_outgoing)
           outgoing = WebmentionIO.load_yaml(cached_outgoing)
           outgoing.each do |source, targets|
             targets.each do |target, response|

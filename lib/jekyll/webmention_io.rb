@@ -36,6 +36,8 @@ module Jekyll
     @types = %w(bookmarks likes links posts replies reposts rsvps).freeze
     @supported_templates = (@types + %w(count webmentions)).freeze
 
+    @cache_folder = ""
+    @cache_files = {}
     @template_file_cache = {}
     @template_content_cache = {}
     @webmention_data_cache = {}
@@ -53,7 +55,23 @@ module Jekyll
       @config = @jekyll_config["webmentions"] || {}
 
       # Set up the cache folder & files
-      @cache_folder = site.in_source_dir(@config["cache_folder"] || ".jekyll-cache")
+      setup_caches
+
+      @js_handler = WebmentionIO::JSHandler.new(site)
+    end
+
+    # Setter
+    def self.api_path=(path)
+      @api_endpoint = "#{@api_url}/#{path}"
+    end
+
+    # Helpers
+    def self.setup_caches(config = false)
+      if config
+        @jekyll_config = config
+        @config = @jekyll_config["webmentions"] || {}
+      end
+      @cache_folder = Jekyll.sanitized_path(@jekyll_config["source"], @config["cache_folder"] || ".jekyll-cache")
       Dir.mkdir(@cache_folder) unless File.exist?(@cache_folder)
       @file_prefix = ""
       @file_prefix = "webmention_io_" unless @cache_folder.include? "webmention"
@@ -66,16 +84,8 @@ module Jekyll
       @cache_files.each_value do |file|
         dump_yaml(file) unless File.exist?(file)
       end
-
-      @js_handler = WebmentionIO::JSHandler.new(site)
     end
 
-    # Setter
-    def self.api_path=(path)
-      @api_endpoint = "#{@api_url}/#{path}"
-    end
-
-    # Helpers
     def self.cache_file(filename)
       Jekyll.sanitized_path(@cache_folder, "#{@file_prefix}#{filename}")
     end
